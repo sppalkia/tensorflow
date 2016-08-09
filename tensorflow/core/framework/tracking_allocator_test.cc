@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -96,8 +96,8 @@ TEST(TrackingAllocatorTest, SimpleNoTracking) {
 
   sizes = ta->GetSizesAndUnRef();
 
-  EXPECT_EQ(16, sizes.first);
-  EXPECT_EQ(12, sizes.second);
+  EXPECT_LE(16, sizes.first);
+  EXPECT_LE(12, sizes.second);
 
   ta->DeallocateRaw(p2);
 }

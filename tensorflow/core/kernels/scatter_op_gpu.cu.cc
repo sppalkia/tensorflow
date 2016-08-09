@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -62,10 +62,10 @@ namespace functor {
 // Specialization for a GPU device.
 template <typename T, typename Index, scatter_op::UpdateOp op>
 struct ScatterFunctor<GPUDevice, T, Index, op> {
-  void operator()(OpKernelContext* c, const GPUDevice& d,
-                  typename TTypes<T>::Matrix params,
-                  typename TTypes<T>::ConstMatrix updates,
-                  typename TTypes<Index>::ConstFlat indices) {
+  Index operator()(OpKernelContext* c, const GPUDevice& d,
+                   typename TTypes<T>::Matrix params,
+                   typename TTypes<T>::ConstMatrix updates,
+                   typename TTypes<Index>::ConstFlat indices) {
     // TODO: Implement indices range check.  The hardest part is with returning
     // a value after the range check, as we do not want to do device to host
     // memcpy during a stream.
@@ -77,6 +77,7 @@ struct ScatterFunctor<GPUDevice, T, Index, op> {
         <<<config.block_count, config.thread_per_block, 0, d.stream()>>>(
             params.data(), updates.data(), indices.data(),
             first_dim_size, updates_size, indices_size);
+    return -1;
   }
 };
 

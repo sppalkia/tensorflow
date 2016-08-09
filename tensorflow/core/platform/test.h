@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -35,8 +35,9 @@ namespace testing {
 // Return a temporary directory suitable for temporary testing files.
 string TmpDir();
 
-// Returns the source directory containing data dependencies.
-string SrcDir();
+// Returns the path to TensorFlow in the directory containing data
+// dependencies.
+string TensorFlowSrcRoot();
 
 // Return a random number generator seed to use in randomized tests.
 // Returns the same value for the lifetime of the process.

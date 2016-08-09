@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -74,12 +74,14 @@ class BaseGPUDevice : public LocalDevice {
   // The caller owns the returned device.
   PerOpGpuDevice* MakeGpuDevice() override;
 
-  void ReinitializeGpuDevice(PerOpGpuDevice* device, DeviceContext* dc,
-                             Allocator* allocator) override;
+  void ReinitializeGpuDevice(OpKernelContext* context, PerOpGpuDevice* device,
+                             DeviceContext* dc, Allocator* allocator) override;
 
  protected:
   Allocator* gpu_allocator_;  // not owned
   Allocator* cpu_allocator_;  // not owned
+
+  gpu::StreamExecutor* executor_;  // not owned
 
  private:
   struct StreamGroup {
@@ -89,6 +91,7 @@ class BaseGPUDevice : public LocalDevice {
     gpu::Stream* device_to_device;
   };
   gtl::InlinedVector<StreamGroup, 4> streams_;
+  gtl::InlinedVector<char*, 4> scratch_;
   std::vector<GPUDeviceContext*> device_contexts_;
   GpuDeviceInfo* gpu_device_info_ = nullptr;
   mutex trace_mu_;
@@ -96,8 +99,8 @@ class BaseGPUDevice : public LocalDevice {
   const bool sync_every_op_ = false;
   std::unique_ptr<EventMgr> em_;
 
-  void ReinitializeDevice(PerOpGpuDevice* device, int stream_id,
-                          Allocator* allocator);
+  void ReinitializeDevice(OpKernelContext* context, PerOpGpuDevice* device,
+                          int stream_id, Allocator* allocator);
 };
 
 class BaseGPUDeviceFactory : public DeviceFactory {

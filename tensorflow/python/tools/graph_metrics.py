@@ -1,4 +1,4 @@
-# Copyright 2015 Google Inc. All Rights Reserved.
+# Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -118,6 +118,11 @@ def calculate_graph_metrics(graph_def, statistic_types, input_layer,
       input_shape = None
     if input_shape_override:
       input_shape = input_shape_override
+    if input_shape is None:
+      raise ValueError("""No input shape was provided on the command line,"""
+                       """ and the input op itself had no default shape, so"""
+                       """ shape inference couldn't be performed. This is"""
+                       """ required for metrics calculations.""")
     input_shape[0] = batch_size
     input_tensor.set_shape(input_shape)
     for node in graph_def.node:

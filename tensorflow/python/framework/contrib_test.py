@@ -1,4 +1,4 @@
-# Copyright 2015 Google Inc. All Rights Reserved.
+# Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -34,6 +34,10 @@ class ContribTest(googletest.TestCase):
     import tensorflow as tf
     assert inspect.ismodule(tf.contrib.layers)
 
+  def testLinearOptimizer(self):
+    # pylint: disable=g-import-not-at-top
+    import tensorflow as tf
+    assert inspect.ismodule(tf.contrib.linear_optimizer)
 
 if __name__ == '__main__':
   googletest.main()

@@ -1,4 +1,4 @@
-# Copyright 2015 Google Inc. All Rights Reserved.
+# Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -128,11 +128,11 @@ class ScatterTest(tf.test.TestCase):
 
         # Test some out of range errors.
         indices = np.array([-1, 0, 5])
-        with self.assertRaisesOpError('indices is out of range'):
+        with self.assertRaisesOpError(r'indices\[0\] = -1 is not in \[0, 6\)'):
           op(ref, indices, updates).eval()
 
         indices = np.array([2, 0, 6])
-        with self.assertRaisesOpError('indices is out of range'):
+        with self.assertRaisesOpError(r'indices\[2\] = 6 is not in \[0, 6\)'):
           op(ref, indices, updates).eval()
 
   # TODO(fpmc): Re-enable this test when gpu_pip test actually runs on a GPU.

@@ -1,4 +1,4 @@
-# Copyright 2015 Google Inc. All Rights Reserved.
+# Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -24,8 +24,6 @@ import time
 import numpy as np
 import tensorflow as tf
 
-from tensorflow.python.client import graph_util
-from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import sparse_ops
 # pylint: enable=g-bad-import-order,unused-import
 
@@ -81,6 +79,7 @@ class SparseTensorDenseMatMulTest(tf.test.TestCase):
     self._testBasic(np.float32)
     self._testBasic(np.float64)
     self._testBasic(np.complex64)
+    self._testBasic(np.complex128)
 
   # Tests setting one dimension to be a high value.
   def _testLarge(self, np_dtype):
@@ -104,6 +103,7 @@ class SparseTensorDenseMatMulTest(tf.test.TestCase):
     self._testLarge(np.float32)
     self._testLarge(np.float64)
     self._testLarge(np.complex64)
+    self._testLarge(np.complex128)
 
   # Tests random sized matrices.
   def testFloatRandom(self):
@@ -132,7 +132,7 @@ def _sparse_tensor_dense_vs_dense_matmul_benchmark_dense(
   t0 = tf.constant(0)
   v0 = tf.constant(0.0)
   def _timeit(iterations, _):
-    (_, final) = control_flow_ops.While(
+    (_, final) = tf.while_loop(
         lambda t, _: t < iterations, body, (t0, v0),
         parallel_iterations=1, back_prop=False)
     return [final]
@@ -152,7 +152,7 @@ def _sparse_tensor_dense_vs_dense_matmul_benchmark_sparse(
   t0 = tf.constant(0)
   v0 = tf.constant(0.0)
   def _timeit(iterations, _):
-    (_, final) = control_flow_ops.While(
+    (_, final) = tf.while_loop(
         lambda t, _: t < iterations, body, (t0, v0),
         parallel_iterations=1, back_prop=False)
     return [final]
@@ -192,7 +192,7 @@ def sparse_tensor_dense_vs_dense_matmul_benchmark(
   else:
     with tf.Session("", config=config, graph=tf.Graph()) as sess:
       if not use_gpu:
-        with tf.device(graph_util.pin_to_cpu):
+        with tf.device("/cpu:0"):
           x_t = tf.constant(x)
           y_t = tf.constant(y)
           ops_fn = _sparse_tensor_dense_vs_dense_matmul_benchmark_dense(
@@ -207,7 +207,7 @@ def sparse_tensor_dense_vs_dense_matmul_benchmark(
   # Using sparse_tensor_dense_matmul.
   with tf.Session("", config=config, graph=tf.Graph()) as sess:
     if not use_gpu:
-      with tf.device(graph_util.pin_to_cpu):
+      with tf.device("/cpu:0"):
         x_ind = tf.constant(np.vstack(np.where(x)).astype(np.int64).T)
         x_val = tf.constant(x[np.where(x)])
         x_shape = tf.constant(np.array(x.shape).astype(np.int64))

@@ -1,4 +1,4 @@
-/* Copyright 2016 Google Inc. All Rights Reserved.
+/* Copyright 2016 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -13,15 +13,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
+#include <signal.h>
+
+#include "tensorflow/core/platform/net.h"
 #include "tensorflow/core/platform/test.h"
 
-#include <unordered_set>
-
-#include <netinet/in.h>
-#include <signal.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <unistd.h>
+#include "tensorflow/core/lib/strings/strcat.h"
+#include "tensorflow/core/platform/logging.h"
 
 namespace tensorflow {
 namespace testing {
@@ -42,11 +40,12 @@ class PosixSubProcess : public SubProcess {
     if (pid_ == 0) {
       // We are in the child process.
       const char* path = argv_[0].c_str();
-      const char** argv = new const char*[argv_.size()];
-      for (int i = 1; i < argv_.size(); ++i) {
-        argv[i - 1] = argv_[i].c_str();
+      const char** argv = new const char*[argv_.size() + 1];
+      int i = 0;
+      for (const string& arg : argv_) {
+        argv[i++] = arg.c_str();
       }
-      argv[argv_.size() - 1] = nullptr;
+      argv[argv_.size()] = nullptr;
       execv(path, (char* const*)argv);
       // Never executes.
       return true;
@@ -79,100 +78,24 @@ std::unique_ptr<SubProcess> CreateSubProcess(const std::vector<string>& argv) {
   return std::unique_ptr<SubProcess>(new PosixSubProcess(argv));
 }
 
-namespace {
-bool IsPortAvailable(int* port, bool is_tcp) {
-  const int protocol = is_tcp ? IPPROTO_TCP : 0;
-  const int fd = socket(AF_INET, is_tcp ? SOCK_STREAM : SOCK_DGRAM, protocol);
+int PickUnusedPortOrDie() { return internal::PickUnusedPortOrDie(); }
 
-  struct sockaddr_in addr;
-  socklen_t addr_len = sizeof(addr);
-  int actual_port;
-
-  CHECK_GE(*port, 0);
-  CHECK_LE(*port, 65535);
-  if (fd < 0) {
-    LOG(ERROR) << "socket() failed: " << strerror(errno);
-    return false;
-  }
-
-  // SO_REUSEADDR lets us start up a server immediately after it exists.
-  int one = 1;
-  if (setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &one, sizeof(one)) < 0) {
-    LOG(ERROR) << "setsockopt() failed: " << strerror(errno);
-    close(fd);
-    return false;
-  }
-
-  // Try binding to port.
-  addr.sin_family = AF_INET;
-  addr.sin_addr.s_addr = INADDR_ANY;
-  addr.sin_port = htons((uint16_t)*port);
-  if (bind(fd, (struct sockaddr*)&addr, sizeof(addr)) < 0) {
-    LOG(WARNING) << "bind(port=" << *port << ") failed: " << strerror(errno);
-    close(fd);
-    return false;
-  }
-
-  // Get the bound port number.
-  if (getsockname(fd, (struct sockaddr*)&addr, &addr_len) < 0) {
-    LOG(WARNING) << "getsockname() failed: " << strerror(errno);
-    close(fd);
-    return false;
-  }
-  CHECK_LE(addr_len, sizeof(addr));
-  actual_port = ntohs(addr.sin_port);
-  CHECK_GT(actual_port, 0);
-  if (*port == 0) {
-    *port = actual_port;
-  } else {
-    CHECK_EQ(*port, actual_port);
-  }
-  close(fd);
-  return true;
-}
-
-const int kNumRandomPortsToPick = 100;
-const int kMaximumTrials = 1000;
-
-}  // namespace
-
-int PickUnusedPortOrDie() {
-  static std::unordered_set<int> chosen_ports;
-
-  // Type of port to first pick in the next iteration.
-  bool is_tcp = true;
-  int trial = 0;
-  while (true) {
-    int port;
-    trial++;
-    CHECK_LE(trial, kMaximumTrials)
-        << "Failed to pick an unused port for testing.";
-    if (trial == 1) {
-      port = getpid() % (65536 - 30000) + 30000;
-    } else if (trial <= kNumRandomPortsToPick) {
-      port = rand() % (65536 - 30000) + 30000;
+string TensorFlowSrcRoot() {
+  // 'bazel test' sets TEST_SRCDIR, and also TEST_WORKSPACE if a new
+  // enough version of bazel is used.
+  const char* env = getenv("TEST_SRCDIR");
+  const char* workspace = getenv("TEST_WORKSPACE");
+  if (env && env[0] != '\0') {
+    if (workspace && workspace[0] != '\0') {
+      return strings::StrCat(env, "/", workspace, "/tensorflow");
     } else {
-      port = 0;
+      return strings::StrCat(env, "/tensorflow");
     }
-
-    if (chosen_ports.find(port) != chosen_ports.end()) {
-      continue;
-    }
-    if (!IsPortAvailable(&port, is_tcp)) {
-      continue;
-    }
-
-    CHECK_GT(port, 0);
-    if (!IsPortAvailable(&port, !is_tcp)) {
-      is_tcp = !is_tcp;
-      continue;
-    }
-
-    chosen_ports.insert(port);
-    return port;
+  } else {
+    LOG(WARNING) << "TEST_SRCDIR environment variable not set: "
+                 << "using $PWD/tensorflow as TensorFlowSrcRoot() for tests.";
+    return "tensorflow";
   }
-
-  return 0;
 }
 
 }  // namespace testing

@@ -1,4 +1,4 @@
-/* Copyright 2015 Google Inc. All Rights Reserved.
+/* Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -25,7 +25,6 @@ namespace testing {
 
 #if defined(PLATFORM_GOOGLE) || defined(__ANDROID__)
 string TmpDir() { return FLAGS_test_tmpdir; }
-string SrcDir() { return FLAGS_test_srcdir; }
 int RandomSeed() { return FLAGS_test_random_seed; }
 #else
 string TmpDir() {
